@@ -9,11 +9,13 @@ Inject the API key in the terminal that will start `chatbot-service`:
 ```bash
 export OPENAI_API_KEY="your-api-key"
 export OPENAI_MODEL="gpt-4o-mini"
+export TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
 mvn spring-boot:run
 ```
 
 `OPENAI_MODEL` is optional and defaults to `gpt-4o-mini`. The API key is read from the process
 environment and is never copied into source code or centralized configuration.
+`TELEGRAM_BOT_TOKEN` is optional; when it is absent, Telegram polling remains disabled.
 
 ## API
 
@@ -40,4 +42,8 @@ Start `account-servie` and `transaction-service` before `chatbot-service`. The M
 unauthenticated and are intended only for local/internal use in the current assignment phase.
 After adding or changing MCP configuration, restart both business services so `/mcp` is registered.
 
-Telegram integration is intentionally deferred to the next approved Part E step.
+## Telegram
+
+When `TELEGRAM_BOT_TOKEN` is present, the service receives text messages using Telegram long
+polling, sends them through the same `ChatService`, and replies in the originating chat. The
+update offset is advanced after every received update so Telegram does not repeatedly deliver it.

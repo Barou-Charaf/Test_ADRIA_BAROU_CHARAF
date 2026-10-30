@@ -3,6 +3,7 @@ package org.example.transactionservice.service;
 import org.example.transactionservice.client.*;
 import org.example.transactionservice.domain.Transaction;
 import org.example.transactionservice.repository.TransactionRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,12 +27,14 @@ class TransactionServiceTest {
     private TransactionRepository transactionRepository;
     @Mock
     private AccountGateway accountGateway;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
     private TransactionService transactionService;
 
     @BeforeEach
     void setUp() {
         transactionService = new TransactionService(
-                transactionRepository, accountGateway, new BigDecimal("1000"));
+                transactionRepository, accountGateway, new BigDecimal("1000"), eventPublisher);
     }
 
     @Test

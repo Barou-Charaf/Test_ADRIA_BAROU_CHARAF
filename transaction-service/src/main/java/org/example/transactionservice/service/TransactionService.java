@@ -5,7 +5,9 @@ import org.example.transactionservice.client.AccountResponse;
 import org.example.transactionservice.client.AccountStatus;
 import org.example.transactionservice.client.RemoteAccountNotFoundException;
 import org.example.transactionservice.domain.Transaction;
+import org.example.transactionservice.messaging.TransactionCreatedEvent;
 import org.example.transactionservice.repository.TransactionRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,14 +24,17 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountGateway accountGateway;
     private final BigDecimal maximumAmount;
+    private final ApplicationEventPublisher eventPublisher;
 
     public TransactionService(
             TransactionRepository transactionRepository,
             AccountGateway accountGateway,
-            @Value("${bank.transaction.max-amount}") BigDecimal maximumAmount) {
+            @Value("${bank.transaction.max-amount}") BigDecimal maximumAmount,
+            ApplicationEventPublisher eventPublisher) {
         this.transactionRepository = transactionRepository;
         this.accountGateway = accountGateway;
         this.maximumAmount = maximumAmount;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -49,7 +54,9 @@ public class TransactionService {
         try {
             Transaction transaction = buildTransaction(
                     accountId, amount, currency, merchantCategory, country, Instant.now());
-            return transactionRepository.saveAndFlush(transaction);
+            Transaction savedTransaction = transactionRepository.saveAndFlush(transaction);
+            eventPublisher.publishEvent(TransactionCreatedEvent.from(savedTransaction));
+            return savedTransaction;
         } catch (RuntimeException persistenceFailure) {
             compensateCredit(accountId, amount, persistenceFailure,
                     "Transaction persistence failed and the account debit could not be compensated");
@@ -117,7 +124,12 @@ public class TransactionService {
                     sourceAccountId, amount, currency, merchantCategory, country, createdAt);
             Transaction destinationTransaction = buildTransaction(
                     destinationAccountId, amount, currency, merchantCategory, country, createdAt);
-            return transactionRepository.saveAllAndFlush(List.of(sourceTransaction, destinationTransaction));
+            List<Transaction> savedTransactions = transactionRepository.saveAllAndFlush(
+                    List.of(sourceTransaction, destinationTransaction));
+            savedTransactions.stream()
+                    .map(TransactionCreatedEvent::from)
+                    .forEach(eventPublisher::publishEvent);
+            return savedTransactions;
         } catch (RuntimeException persistenceFailure) {
             compensateTransfer(sourceAccountId, destinationAccountId, amount, persistenceFailure);
             throw new TransactionProcessingException(

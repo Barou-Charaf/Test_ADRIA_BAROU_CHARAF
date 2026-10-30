@@ -25,3 +25,16 @@ Transaction entity has one `accountId` and no transaction-type or destination fi
 - Health: `http://localhost:8082/actuator/health`
 
 The H2 and resilience settings are supplied by Config Server. The account-service location is resolved through Eureka.
+
+## Kafka — Part F
+
+After a database transaction commits successfully, each persisted transaction publishes a
+`TransactionCreatedEvent` to `bank.transactions.created`. The Kafka record key is the account UUID.
+A consumer in this service uses group `transaction-service-logger` and only logs received events;
+it does not modify banking data.
+
+Kafka defaults to `localhost:9092`. Override it when necessary:
+
+```bash
+export KAFKA_BOOTSTRAP_SERVERS="localhost:9092"
+```
