@@ -9,6 +9,7 @@
 | Gateway Service | 8080 | External REST and GraphQL routing |
 | Account Service | 8081 | Account business operations |
 | Transaction Service | 8082 | Transaction and transfer operations |
+| Chatbot Service | 8083 | Spring AI chat operations |
 
 ## Startup order
 
@@ -16,9 +17,13 @@
 2. `discovery-service`
 3. `account-servie`
 4. `transaction-service`
-5. `gateway-service`
+5. `chatbot-service`
+6. `gateway-service`
 
 Run each application from its own directory with `mvn spring-boot:run`.
+
+`chatbot-service` connects directly to the business services' local MCP endpoints at `/mcp`, so
+both business services must be available before the chatbot starts.
 
 ## Gateway routes
 
