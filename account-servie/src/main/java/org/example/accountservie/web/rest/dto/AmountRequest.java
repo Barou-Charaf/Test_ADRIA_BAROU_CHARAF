@@ -1,6 +1,7 @@
 package org.example.accountservie.web.rest.dto;
 
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 
-public record AmountRequest(@DecimalMin(value = "0.0", inclusive = false) double amount) {
+public record AmountRequest(@NotNull @Positive Double amount) {
 }

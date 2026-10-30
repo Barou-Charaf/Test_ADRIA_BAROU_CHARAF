@@ -24,8 +24,8 @@ public class RestExceptionHandler {
         return error(HttpStatus.CONFLICT, exception.getMessage(), request);
     }
 
-    @ExceptionHandler(InvalidAmountException.class)
-    public ResponseEntity<ApiError> handleInvalidAmount(InvalidAmountException exception, HttpServletRequest request) {
+    @ExceptionHandler({InvalidAmountException.class, InvalidAccountDataException.class})
+    public ResponseEntity<ApiError> handleBadRequest(RuntimeException exception, HttpServletRequest request) {
         return error(HttpStatus.BAD_REQUEST, exception.getMessage(), request);
     }
 

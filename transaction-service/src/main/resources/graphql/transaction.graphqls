@@ -1,0 +1,38 @@
+scalar BigDecimal
+scalar DateTime
+
+type Transaction {
+    id: ID!
+    accountId: ID!
+    amount: BigDecimal!
+    currency: String!
+    merchantCategory: String!
+    country: String!
+    createdAt: DateTime!
+}
+
+input CreateTransactionInput {
+    accountId: ID!
+    amount: BigDecimal!
+    currency: String!
+    merchantCategory: String!
+    country: String!
+}
+
+input TransferInput {
+    sourceAccountId: ID!
+    destinationAccountId: ID!
+    amount: BigDecimal!
+    currency: String!
+}
+
+type Query {
+    transactions: [Transaction!]!
+    transaction(id: ID!): Transaction!
+    transactionsByAccount(accountId: ID!): [Transaction!]!
+}
+
+type Mutation {
+    createTransaction(input: CreateTransactionInput!): Transaction!
+    transfer(input: TransferInput!): Boolean!
+}

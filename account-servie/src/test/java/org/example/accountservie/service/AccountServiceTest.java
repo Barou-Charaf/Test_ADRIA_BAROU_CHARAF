@@ -27,7 +27,7 @@ class AccountServiceTest {
 
     @BeforeEach
     void setUp() {
-        accountService = new AccountService(accountRepository);
+        accountService = new AccountService(accountRepository, 1000);
         lenient().when(accountRepository.save(any(Account.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -93,6 +93,14 @@ class AccountServiceTest {
                 .isInstanceOf(InvalidAmountException.class);
         assertThatThrownBy(() -> accountService.credit(UUID.randomUUID(), Double.NaN))
                 .isInstanceOf(InvalidAmountException.class);
+        verifyNoInteractions(accountRepository);
+    }
+
+    @Test
+    void rejectsAmountAboveConfiguredMaximum() {
+        assertThatThrownBy(() -> accountService.debit(UUID.randomUUID(), 1000.01))
+                .isInstanceOf(InvalidAmountException.class)
+                .hasMessageContaining("1000");
         verifyNoInteractions(accountRepository);
     }
 
