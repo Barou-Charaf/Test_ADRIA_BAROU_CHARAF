@@ -24,6 +24,8 @@ input TransferInput {
     destinationAccountId: ID!
     amount: BigDecimal!
     currency: String!
+    merchantCategory: String!
+    country: String!
 }
 
 type Query {
@@ -34,5 +36,5 @@ type Query {
 
 type Mutation {
     createTransaction(input: CreateTransactionInput!): Transaction!
-    transfer(input: TransferInput!): Boolean!
+    transfer(input: TransferInput!): [Transaction!]!
 }

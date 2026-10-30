@@ -1,5 +1,9 @@
 package org.example.transactionservice.service;
 
+import org.example.transactionservice.client.AccountGateway;
+import org.example.transactionservice.client.AccountResponse;
+import org.example.transactionservice.client.AccountStatus;
+import org.example.transactionservice.client.RemoteAccountNotFoundException;
 import org.example.transactionservice.domain.Transaction;
 import org.example.transactionservice.repository.TransactionRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -15,15 +20,19 @@ import java.util.UUID;
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final AccountGateway accountGateway;
     private final BigDecimal maximumAmount;
 
     public TransactionService(
             TransactionRepository transactionRepository,
+            AccountGateway accountGateway,
             @Value("${bank.transaction.max-amount}") BigDecimal maximumAmount) {
         this.transactionRepository = transactionRepository;
+        this.accountGateway = accountGateway;
         this.maximumAmount = maximumAmount;
     }
 
+    @Transactional
     public Transaction createTransaction(
             UUID accountId,
             BigDecimal amount,
@@ -31,10 +40,22 @@ public class TransactionService {
             String merchantCategory,
             String country) {
         validateTransactionData(accountId, amount, currency, merchantCategory, country);
+        AccountResponse account = getRequiredAccount(accountId);
+        validateActive(account);
+        validateCurrency(currency, account);
+        validateBalance(accountId, amount);
 
-        // Persistence must wait for C3: the account must first be verified as
-        // existing, ACTIVE, sufficiently funded, and using the same currency.
-        throw new AccountIntegrationRequiredException();
+        accountGateway.debit(accountId, amount);
+        try {
+            Transaction transaction = buildTransaction(
+                    accountId, amount, currency, merchantCategory, country, Instant.now());
+            return transactionRepository.saveAndFlush(transaction);
+        } catch (RuntimeException persistenceFailure) {
+            compensateCredit(accountId, amount, persistenceFailure,
+                    "Transaction persistence failed and the account debit could not be compensated");
+            throw new TransactionProcessingException(
+                    "Transaction persistence failed; the account debit was compensated", persistenceFailure);
+        }
     }
 
     public List<Transaction> getAllTransactions() {
@@ -53,7 +74,14 @@ public class TransactionService {
         return transactionRepository.findByAccountId(accountId);
     }
 
-    public void transfer(UUID sourceAccountId, UUID destinationAccountId, BigDecimal amount, String currency) {
+    @Transactional
+    public List<Transaction> transfer(
+            UUID sourceAccountId,
+            UUID destinationAccountId,
+            BigDecimal amount,
+            String currency,
+            String merchantCategory,
+            String country) {
         if (sourceAccountId == null) {
             throw new InvalidTransactionException("Source account id is required");
         }
@@ -62,10 +90,39 @@ public class TransactionService {
         }
         validateAmount(amount);
         requireText(currency, "Currency");
+        requireText(merchantCategory, "Merchant category");
+        requireText(country, "Country");
 
-        // C3 must verify both accounts and coordinate debit/credit without
-        // falsely claiming a distributed transaction succeeded.
-        throw new AccountIntegrationRequiredException();
+        AccountResponse source = getRequiredAccount(sourceAccountId);
+        AccountResponse destination = getRequiredAccount(destinationAccountId);
+        validateActive(source);
+        validateActive(destination);
+        validateCurrency(currency, source);
+        validateCurrency(currency, destination);
+        validateBalance(sourceAccountId, amount);
+
+        accountGateway.debit(sourceAccountId, amount);
+        try {
+            accountGateway.credit(destinationAccountId, amount);
+        } catch (RuntimeException creditFailure) {
+            compensateCredit(sourceAccountId, amount, creditFailure,
+                    "Destination credit failed and the source debit could not be compensated");
+            throw new TransactionProcessingException(
+                    "Destination credit failed; the source debit was compensated", creditFailure);
+        }
+
+        try {
+            Instant createdAt = Instant.now();
+            Transaction sourceTransaction = buildTransaction(
+                    sourceAccountId, amount, currency, merchantCategory, country, createdAt);
+            Transaction destinationTransaction = buildTransaction(
+                    destinationAccountId, amount, currency, merchantCategory, country, createdAt);
+            return transactionRepository.saveAllAndFlush(List.of(sourceTransaction, destinationTransaction));
+        } catch (RuntimeException persistenceFailure) {
+            compensateTransfer(sourceAccountId, destinationAccountId, amount, persistenceFailure);
+            throw new TransactionProcessingException(
+                    "Transfer persistence failed; both balance changes were compensated", persistenceFailure);
+        }
     }
 
     private void validateTransactionData(
@@ -98,6 +155,78 @@ public class TransactionService {
     private void requireText(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new InvalidTransactionException(fieldName + " is required");
+        }
+    }
+
+    private AccountResponse getRequiredAccount(UUID accountId) {
+        try {
+            return accountGateway.getAccount(accountId);
+        } catch (RemoteAccountNotFoundException exception) {
+            throw new AccountNotFoundException(accountId);
+        }
+    }
+
+    private void validateActive(AccountResponse account) {
+        if (account.status() != AccountStatus.ACTIVE) {
+            throw new BlockedAccountException(account.id());
+        }
+    }
+
+    private void validateCurrency(String currency, AccountResponse account) {
+        if (!currency.equals(account.currency())) {
+            throw new CurrencyMismatchException();
+        }
+    }
+
+    private void validateBalance(UUID accountId, BigDecimal amount) {
+        double currentBalance = accountGateway.getBalance(accountId).balance();
+        if (BigDecimal.valueOf(currentBalance).compareTo(amount) < 0) {
+            throw new InsufficientBalanceException();
+        }
+    }
+
+    private Transaction buildTransaction(
+            UUID accountId,
+            BigDecimal amount,
+            String currency,
+            String merchantCategory,
+            String country,
+            Instant createdAt) {
+        return Transaction.builder()
+                .accountId(accountId)
+                .amount(amount)
+                .currency(currency)
+                .merchantCategory(merchantCategory)
+                .country(country)
+                .createdAt(createdAt)
+                .build();
+    }
+
+    private void compensateCredit(
+            UUID accountId,
+            BigDecimal amount,
+            Throwable originalFailure,
+            String failureMessage) {
+        try {
+            accountGateway.credit(accountId, amount);
+        } catch (RuntimeException compensationFailure) {
+            throw new CompensationFailedException(failureMessage, originalFailure, compensationFailure);
+        }
+    }
+
+    private void compensateTransfer(
+            UUID sourceAccountId,
+            UUID destinationAccountId,
+            BigDecimal amount,
+            Throwable originalFailure) {
+        try {
+            accountGateway.debit(destinationAccountId, amount);
+            accountGateway.credit(sourceAccountId, amount);
+        } catch (RuntimeException compensationFailure) {
+            throw new CompensationFailedException(
+                    "Transfer persistence failed and its balance changes could not be fully compensated",
+                    originalFailure,
+                    compensationFailure);
         }
     }
 }

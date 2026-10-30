@@ -11,6 +11,8 @@ public record TransferRequest(
         @NotNull UUID sourceAccountId,
         @NotNull UUID destinationAccountId,
         @NotNull @Positive BigDecimal amount,
-        @NotBlank String currency
+        @NotBlank String currency,
+        @NotBlank String merchantCategory,
+        @NotBlank String country
 ) {
 }

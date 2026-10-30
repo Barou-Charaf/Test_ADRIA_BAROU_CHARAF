@@ -50,12 +50,14 @@ public class TransactionRestController {
 
     @PostMapping("/transfer")
     @ResponseStatus(HttpStatus.CREATED)
-    public void transfer(@Valid @RequestBody TransferRequest request) {
-        transactionService.transfer(
+    public List<TransactionResponse> transfer(@Valid @RequestBody TransferRequest request) {
+        return transactionService.transfer(
                 request.sourceAccountId(),
                 request.destinationAccountId(),
                 request.amount(),
-                request.currency()
-        );
+                request.currency(),
+                request.merchantCategory(),
+                request.country()
+        ).stream().map(TransactionResponse::from).toList();
     }
 }

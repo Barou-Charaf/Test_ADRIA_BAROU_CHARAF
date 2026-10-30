@@ -1,16 +1,20 @@
-# Transaction Service — Step C2
+# Transaction Service — Steps C2 and C3
 
 This Spring Boot application implements the local Transaction Service scope from Step C2.
 
-## Current C2 boundary
+## Account-service integration
 
-Transaction creation and transfers require live account data to verify account existence, status, currency, and balance.
-OpenFeign communication is intentionally deferred to Step C3. Until that integration exists, valid create and transfer
-requests return a clear integration-pending error and are not persisted. This prevents the service from reporting a
-successful banking operation without performing the required account checks.
+Transaction creation and transfers use OpenFeign and Eureka service discovery to verify account existence, ACTIVE status, currency, and balance.
+Safe account reads use Resilience4J retry and circuit-breaker policies. Debit and credit operations use a separate
+circuit breaker and are never automatically retried because a retry could duplicate a balance update.
 
-Read operations, persistence infrastructure, request validation, maximum-amount validation, REST contracts, GraphQL
-contracts, and custom GraphQL scalar configuration are implemented in C2.
+The workflow is synchronous orchestration, not a distributed transaction. If persistence or a later transfer step fails,
+the service attempts compensating account operations. A failed compensation is returned as an explicit error and is
+never reported as success. This is a best-effort consistency strategy; production-grade guaranteed recovery would need
+additional infrastructure that is outside the current assignment step.
+
+A successful transfer stores two transaction rows—one associated with each account—because the assignment's fixed
+Transaction entity has one `accountId` and no transaction-type or destination fields. No attributes were added to it.
 
 ## Local endpoints
 
@@ -20,4 +24,4 @@ contracts, and custom GraphQL scalar configuration are implemented in C2.
 - H2 console: `http://localhost:8082/h2-console`
 - Health: `http://localhost:8082/actuator/health`
 
-The local H2 JDBC URL is `jdbc:h2:mem:transactiondb`, with username `sa` and an empty password.
+The H2 and resilience settings are supplied by Config Server. The account-service location is resolved through Eureka.

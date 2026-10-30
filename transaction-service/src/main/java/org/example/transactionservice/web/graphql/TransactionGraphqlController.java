@@ -46,14 +46,15 @@ public class TransactionGraphqlController {
     }
 
     @MutationMapping
-    public boolean transfer(@Argument TransferInput input) {
-        transactionService.transfer(
+    public List<TransactionGraphqlResponse> transfer(@Argument TransferInput input) {
+        return transactionService.transfer(
                 input.sourceAccountId(),
                 input.destinationAccountId(),
                 input.amount(),
-                input.currency()
-        );
-        return true;
+                input.currency(),
+                input.merchantCategory(),
+                input.country()
+        ).stream().map(TransactionGraphqlResponse::from).toList();
     }
 
     public record CreateTransactionInput(
@@ -69,7 +70,9 @@ public class TransactionGraphqlController {
             UUID sourceAccountId,
             UUID destinationAccountId,
             BigDecimal amount,
-            String currency
+            String currency,
+            String merchantCategory,
+            String country
     ) {
     }
 }
