@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.example.accountservie.enums.Status;
+import java.util.UUID;
 
 @Entity
 @NoArgsConstructor
@@ -15,13 +15,13 @@ import org.example.accountservie.enums.Status;
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String Id;
+    private UUID id;
 
     @Column(nullable = false)
     private String customerReference;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private AccountStatus status;
     @Column(nullable = false)
     private String currency;
     @Column(nullable = false)
