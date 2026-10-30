@@ -1,0 +1,50 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #1d2939; background: #f6f7f9; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+.app-shell { max-width: 1180px; margin: 0 auto; padding: 28px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 42px; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin-bottom: 0; font-size: 1.45rem; letter-spacing: -.03em; }
+h2 { margin-bottom: 0; font-size: 1.8rem; letter-spacing: -.04em; }
+h3 { margin-bottom: 20px; }
+.eyebrow { display: block; margin-bottom: 5px; color: #667085; font-size: .72rem; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
+nav { display: flex; gap: 4px; padding: 4px; border: 1px solid #e4e7ec; border-radius: 10px; background: #fff; }
+nav button, .segmented button { border: 0; border-radius: 7px; padding: 8px 13px; color: #667085; background: transparent; }
+nav button.active, .segmented button.selected { color: #101828; background: #f2f4f7; font-weight: 650; }
+.section-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 18px; }
+.section-heading > span { color: #667085; font-size: .88rem; }
+.grid { display: grid; grid-template-columns: minmax(270px, .72fr) minmax(0, 1.5fr); gap: 18px; align-items: start; }
+.card { border: 1px solid #e4e7ec; border-radius: 14px; background: #fff; box-shadow: 0 1px 2px rgba(16, 24, 40, .03); }
+.form-card { padding: 22px; }
+label { display: block; margin-bottom: 15px; }
+label span { display: block; margin-bottom: 6px; color: #475467; font-size: .8rem; font-weight: 650; }
+input, select { width: 100%; min-height: 40px; border: 1px solid #d0d5dd; border-radius: 8px; padding: 8px 10px; color: #101828; background: #fff; outline: none; }
+input:focus, select:focus { border-color: #344054; box-shadow: 0 0 0 3px rgba(52, 64, 84, .08); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.primary { border: 0; border-radius: 8px; padding: 10px 14px; color: #fff; background: #101828; font-weight: 650; }
+.primary:disabled { opacity: .55; cursor: default; }
+.form-card .primary { width: 100%; }
+.table-wrap { overflow: hidden; }
+table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+th { padding: 12px 15px; color: #667085; background: #f9fafb; font-size: .72rem; text-align: left; text-transform: uppercase; letter-spacing: .04em; }
+td { padding: 14px 15px; border-top: 1px solid #eaecf0; vertical-align: middle; }
+td small { display: block; margin-top: 3px; color: #98a2b3; }
+.status { display: inline-block; border-radius: 999px; padding: 4px 8px; font-size: .7rem; font-weight: 750; }
+.status.active { color: #067647; background: #ecfdf3; }
+.status.blocked { color: #b42318; background: #fef3f2; }
+.empty { margin: 0; padding: 30px; color: #98a2b3; text-align: center; }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 20px; padding: 3px; border-radius: 9px; background: #f2f4f7; }
+.alert { margin-bottom: 18px; border-radius: 9px; padding: 11px 14px; font-size: .85rem; }
+.alert.error { color: #b42318; background: #fef3f2; }
+.alert.success { color: #067647; background: #ecfdf3; }
+.chat-section { max-width: 760px; margin: 0 auto; }
+.chat-card { min-height: 480px; display: flex; flex-direction: column; }
+.messages { flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 22px; }
+.message { max-width: 78%; border-radius: 12px; padding: 10px 13px; line-height: 1.45; white-space: pre-wrap; }
+.message.assistant { align-self: flex-start; background: #f2f4f7; }
+.message.user { align-self: flex-end; color: #fff; background: #101828; }
+.message.muted { color: #667085; }
+.chat-form { display: grid; grid-template-columns: 1fr auto; gap: 9px; border-top: 1px solid #eaecf0; padding: 14px; }
+@media (max-width: 760px) { .app-shell { padding: 18px; } header { align-items: flex-start; flex-direction: column; margin-bottom: 30px; } nav { width: 100%; } nav button { flex: 1; padding-inline: 7px; } .grid { grid-template-columns: 1fr; } .table-wrap { overflow-x: auto; } table { min-width: 590px; } .form-row { grid-template-columns: 1fr; gap: 0; } }
